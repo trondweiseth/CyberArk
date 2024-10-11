@@ -18,6 +18,10 @@
        PSS-AddSafe           : Creating new safe(s) and adding Administrator.
        PSS-GetMemberSafes    : Fetching all safes that a member(user) is a member of
        PSS-UnlockUser        : Unlocking local CyberArk users
+       PSS-GetGroupMembers   : List members of CyberArk groups
+       PSS-GetSafeMembers    : List members of a safe
+       PSS-GetGroups         : List CyberArk groups
+
 
 .NOTES
      Author     : Trond Weiseth
@@ -1201,12 +1205,98 @@ Function PSS-UnlockUser {
     }
 }
 
+Function PSS-GetSafeMembers {
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [string]
+        $SafeName
+    )
+
+    begin {
+        ValidateSession
+    }
+    
+    Process {
+        Get-PASSafe -Search "$SafeName" | foreach {
+            Write-Host -ForegroundColor Green "Safe : " -NoNewline
+            Write-Host -f Yellow $_.safename
+            '-------------------------'
+            ($_ | Get-PASSafeMember).username
+            write-host ""
+            }
+    }
+    
+    End {}
+}
+
+Function PSS-GetGroupMembers {
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [string]
+        $GroupName
+    )
+
+    begin {
+        ValidateSession
+    }
+    
+    Process {
+        try {
+            Get-PASGroup -search $GroupName -includeMembers $true | foreach {
+                $groupname = $_.groupname
+                $users     = $_.members | select -ExpandProperty username
+                ""
+                Write-Host -f green "Groupname: " -NoNewline
+                write-host -f yellow $_.groupname
+                write-host -f white '-------------------------'
+                $users
+                }
+        }
+        catch {
+            psserrorhandling
+        }
+    }
+    
+    End {}
+}
+
+Function PSS-GetGroups {
+    param
+    (
+        [Parameter(Mandatory = $false)]
+        [string]
+        $GroupName
+    )
+
+    begin {
+        ValidateSession
+    }
+    
+    Process {
+        try {
+            if ($null -eq $groupname) {
+                Get-PASGroup
+            }
+            else {
+                Get-PASGroup -search $GroupName | select groupname
+            }
+        }
+        catch {
+            psserrorhandling
+        }
+    }
+    
+    End {}
+}
+
 <#
 Function template {
     param
     (
         [Parameter(Mandatory = $true/$false)]
-        [string[]]
+        [string]
         $parametername
     )
 
@@ -1215,7 +1305,12 @@ Function template {
     }
     
     Process {
-        code
+        try {
+            code
+        } 
+        catch {
+            psserrorhandling
+        }
     }
     
     End {}
